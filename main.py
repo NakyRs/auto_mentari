@@ -173,50 +173,49 @@ def pilihan(take_data= True):
 
     return matkul
 
+def pilih_dari_list(prompt, daftar):
+    while True:
+        print(f"\n===== {prompt} =====")
+        for i, item in enumerate(daftar, start=1):
+            print(f"{i}. {item}")
+        try:
+            pilihan = int(input(f"Pilih {prompt}: "))
+            if 1 <= pilihan <= len(daftar):
+                return daftar[pilihan - 1]
+            else:
+                print("Pilihan di luar jangkauan. Coba lagi.")
+        except ValueError:
+            print("Masukkan angka yang valid.")
+
+
 def main():
     matkul= pilihan()
     # pilih_semester(driver) ##ppp
 
     while True:
-        list_namat= []
-        print("===== Matkul =====")
-        for i, mat in enumerate(matkul.keys(), start=1):
-            print(f"{i}.", mat)
-            list_namat.append(mat)
+        nama_matkul = pilih_dari_list("Matkul", list(matkul.keys()))
+        nama_pert = pilih_dari_list("Pertemuan", matkul[nama_matkul])
+        tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest"])
 
-        no_matkul= int(input("Pilih Matkul: "))
-        nama_matkul= list_namat[no_matkul-1]
+        print(f"\n=== Yang Dipilih ===")
+        print(f"Matkul: {nama_matkul}")
+        print(f"Pertemuan: {nama_pert}")
+        print(f"Tipe: {tipe}\n")
 
-        list_pert= []
-        print("\n===== Pertemuan =====")
-        for i, pert in enumerate(matkul[nama_matkul], start=1):
-            print(f"{i}.", pert)
-            list_pert.append(pert)
-        
-        no_pert= int(input("Pilih Pertemuan: "))
-        nama_pert= list_pert[no_pert-1]
-
-        list_tipe=["Pretest","Posttest"]
-        print("==== Type ====")
-        for i, tipe in enumerate(list_tipe, start= 1):
-            print(f"{i}.", tipe)
-        tipe= list_tipe[int(input("Masukkan Tipe: "))-1]
-
-        print(f"=Yang Dipilih=\nMatkul: {nama_matkul}\nPertemuan: {nama_pert}\nTipe: {tipe}")
-
-        if (no_matkul or no_pert) == 0:
+        lanjut = input("Lanjut ke proses? (y/n): ").strip().lower()
+        if lanjut != 'y':
             print("=== Bye ===")
             break
-        
-        driver= set_driver()
 
-        driver.get(link)
-        WebDriverWait(driver, timeout=300).until(
-            lambda d: "Dashboard" in d.page_source
-        )
-
-        quiz(driver, nama_matkul, nama_pert, tipe)
-        driver.quit()
+        driver = set_driver()
+        try:
+            driver.get(link)
+            WebDriverWait(driver, timeout=300).until(
+                lambda d: "Dashboard" in d.page_source
+            )
+            quiz(driver, nama_matkul, nama_pert, tipe)
+        finally:
+            driver.quit()
 
 
 if __name__ == "__main__":
