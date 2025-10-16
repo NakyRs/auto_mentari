@@ -101,11 +101,29 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
         confirm_quiz_button.click()
     except:
         pass
-        
+    # <div class="MuiAlert-message css-1xsto0d"><div class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom MuiAlertTitle-root css-pp3c2j"><p class="MuiTypography-root MuiTypography-body1 title css-ko3ua3">SUCCESS</p></div>Quiz berhasil dibuat</div>
+    i=0
     while True:
+        i+=1
         try:
+            if i==1:
+                try:
+                    WebDriverWait(driver, 5).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "MuiSnackbar-root"))
+                    )
+                        # if (popup) popup.remove();
+                    driver.execute_script("""
+                        let popup = document.querySelector('.MuiSnackbar-root');
+                        if (popup && popup.innerText.includes('Quiz berhasil')) {
+                            popup.style.display = 'none';
+                        }
+                    """)
+                    print("Pop-up berhasil dihapus.")
+                except:
+                    print("Pop-up tidak ditemukan atau sudah hilang.")
+
             pertanyaan_elem = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".ck-content p"))
+                EC.visibility_of_element_located((By.CSS_SELECTOR, ".ck-content p"))
             )
             pertanyaan = pertanyaan_elem.text.strip()
             # pertanyaan_container = driver.find_element(By.CSS_SELECTOR, "div.MuiPaper-root[id]")
