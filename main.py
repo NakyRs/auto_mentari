@@ -1,4 +1,5 @@
 import time
+import random
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
@@ -66,10 +67,10 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
     )
     element.click()
 
-    pertemuan1 = WebDriverWait(driver, 10).until(
+    pertemuan = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, f'//h6[text()="{pertemuan}"]'))
     )
-    pertemuan1.click()
+    pertemuan.click()
 
     # wait.until(
     #     EC.visibility_of_element_located((By.XPATH, f"//p[text()='{pertemuan}' or text()='{pertemuan.capitalize()}']"))
@@ -177,6 +178,49 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
             print("Terjadi error:", e)
             break
 
+def quisioner(driver, nama_matkul, pertemuan, ran=False):
+    wait = WebDriverWait(driver, 5)
+    element = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, f'//div[@role="button" and .//p[text()="{nama_matkul}"]]'))
+    )
+    element.click()
+
+    pertemuan = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, f'//h6[text()="{pertemuan}"]'))
+    )
+    pertemuan.click()
+
+    quisioner_button=wait.until(
+        EC.visibility_of_element_located((By.XPATH, f"//p[text()='Kuesioner']/following::button[contains(text(),'Kuesioner')]"))
+    )
+    quisioner_button.click()
+
+    radio_group= wait.until(
+        # EC.visibility_of_element_located((By.CSS_SELECTOR, f'MuiFormGroup-root.MuiFormGroup-row.css-p58oka'))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.MuiFormGroup-root.MuiFormGroup-row"))
+    )
+
+    for button in radio_group:
+        radio_buttons = button.find_elements(By.CSS_SELECTOR, "input[type='radio']")
+
+        if not radio_buttons:
+            print(f"Tidak ditemukan radio")
+            continue
+
+        pilihan = random.choice(radio_buttons) if ran else radio_buttons[0]
+
+        # Klik langsung
+        pilihan.click()
+
+    submit_button= wait.until(
+        EC.visibility_of_element_located((By.XPATH, f"//button[contains(text(),'Submit Kuesioner')]"))
+    )
+    submit_button.click()
+
+    # time.sleep(5)
+
+
+# name="row-radio-buttons-group"
 def pilihan(take_data= True):
     driver= set_driver(headless=True)
 
@@ -213,7 +257,7 @@ def main():
     while True:
         nama_matkul = pilih_dari_list("Matkul", list(matkul.keys()))
         nama_pert = pilih_dari_list("Pertemuan", matkul[nama_matkul])
-        tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest"])
+        tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest", "Kuesioner"])
 
         print(f"\n=== Yang Dipilih ===")
         print(f"Matkul: {nama_matkul}")
@@ -231,7 +275,25 @@ def main():
             WebDriverWait(driver, timeout=300).until(
                 lambda d: "Dashboard" in d.page_source
             )
-            quiz(driver, nama_matkul, nama_pert, tipe)
+            if tipe== 'Kuesioner':
+                driver.get(link)
+                WebDriverWait(driver, timeout=300).until(
+                    lambda d: "Dashboard" in d.page_source
+                )
+                quisioner(driver, nama_matkul, nama_pert, ran=True)
+                
+            if tipe == 'Posttest':
+                driver.get(link)
+                WebDriverWait(driver, timeout=300).until(
+                    lambda d: "Dashboard" in d.page_source
+                )
+                quiz(driver, nama_matkul, nama_pert, tipe)
+                driver.get(link)
+                WebDriverWait(driver, timeout=300).until(
+                    lambda d: "Dashboard" in d.page_source
+                )
+                quisioner(driver, nama_matkul, nama_pert, ran=True)
+                
         finally:
             driver.quit()
 
