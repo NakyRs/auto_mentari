@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 # from selenium.webdriver.chrome.service import Service
 from git_model import generate
+from definitions import *
 
 link= "https://mentari.unpam.ac.id"
 
@@ -28,6 +29,7 @@ def matkul_pert(driver):
     def matkul_element():
         return WebDriverWait(driver, 30).until(
             EC.presence_of_all_elements_located((By.XPATH, '//p[@class="MuiTypography-root MuiTypography-body1 css-d7xg8o"]'))
+            # EC.presence_of_all_elements_located((By.XPATH, '//div[contains(@class,"MuiListItemText-root")]//span//p[contains(@class,"MuiTypography-body1")]'))
         )
 
     matkul= {}
@@ -211,17 +213,20 @@ def quisioner(driver, nama_matkul, pertemuan, ran=False):
 
         # Klik langsung
         pilihan.click()
-
-    submit_button= wait.until(
-        EC.visibility_of_element_located((By.XPATH, f"//button[contains(text(),'Submit Kuesioner')]"))
-    )
-    submit_button.click()
-
+    try:
+        submit_button= wait.until(
+            EC.visibility_of_element_located((By.XPATH, f"//button[contains(text(),'Submit Kuesioner')]"))
+        )
+        submit_button.click()
+        print("Sudah Tersubmit")
+    except:
+        print("Error")
+        return False
     # time.sleep(5)
 
 
 # name="row-radio-buttons-group"
-def pilihan(take_data= True):
+def data_matkul(take_data= True):
     driver= set_driver(headless=True)
 
     driver.get(link)
@@ -232,8 +237,8 @@ def pilihan(take_data= True):
     matkul= matkul_pert(driver)
 
     driver.quit()
-
-    return matkul
+    writeFileJson(matkul, "matkul.json")
+    # return matkul
 
 def pilih_dari_list(prompt, daftar):
     while True:
@@ -251,10 +256,19 @@ def pilih_dari_list(prompt, daftar):
 
 
 def main():
-    matkul= pilihan()
+    print("=+=+=+=+=+= Auto_E-Learning =+=+=+=+=+=")
+    while True:
+        inp= int(input("1.Update Data\n2.Start\ninput:"))
+        if inp == 1:
+            data_matkul()
+            print("data berhasil diupdate")
+        elif inp == 2:
+            break
+        else: "Pilihan Tidak ada"
     # pilih_semester(driver) ##ppp
 
     while True:
+        matkul= readFileJson('matkul.json')
         nama_matkul = pilih_dari_list("Matkul", list(matkul.keys()))
         nama_pert = pilih_dari_list("Pertemuan", matkul[nama_matkul])
         tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest", "Kuesioner"])
@@ -271,18 +285,13 @@ def main():
 
         driver = set_driver()
         try:
-            driver.get(link)
-            WebDriverWait(driver, timeout=300).until(
-                lambda d: "Dashboard" in d.page_source
-            )
             if tipe== 'Kuesioner':
                 driver.get(link)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
                 )
                 quisioner(driver, nama_matkul, nama_pert, ran=True)
-                
-            if tipe == 'Posttest':
+            elif tipe == 'Posttest':
                 driver.get(link)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
@@ -293,6 +302,12 @@ def main():
                     lambda d: "Dashboard" in d.page_source
                 )
                 quisioner(driver, nama_matkul, nama_pert, ran=True)
+            else:
+                driver.get(link)
+                WebDriverWait(driver, timeout=300).until(
+                    lambda d: "Dashboard" in d.page_source
+                )
+                quiz(driver, nama_matkul, nama_pert, tipe)
                 
         finally:
             driver.quit()
