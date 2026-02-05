@@ -226,7 +226,7 @@ def quisioner(driver, nama_matkul, pertemuan, ran=False):
 
 
 # name="row-radio-buttons-group"
-def data_matkul(take_data= True):
+def updateDataMatkul(take_data= True):
     driver= set_driver(headless=True)
 
     driver.get(link)
@@ -240,27 +240,12 @@ def data_matkul(take_data= True):
     writeFileJson(matkul, "matkul.json")
     # return matkul
 
-def pilih_dari_list(prompt, daftar):
-    while True:
-        print(f"\n===== {prompt} =====")
-        for i, item in enumerate(daftar, start=1):
-            print(f"{i}. {item}")
-        try:
-            pilihan = int(input(f"Pilih {prompt}: "))
-            if 1 <= pilihan <= len(daftar):
-                return daftar[pilihan - 1]
-            else:
-                print("Pilihan di luar jangkauan. Coba lagi.")
-        except ValueError:
-            print("Masukkan angka yang valid.")
-
-
 def main():
     print("=+=+=+=+=+= Auto_E-Learning =+=+=+=+=+=")
     while True:
         inp= int(input("1.Update Data\n2.Start\ninput:"))
         if inp == 1:
-            data_matkul()
+            updateDataMatkul()
             print("data berhasil diupdate")
         elif inp == 2:
             break
@@ -268,7 +253,13 @@ def main():
     # pilih_semester(driver) ##ppp
 
     while True:
-        matkul= readFileJson('matkul.json')
+        try:
+            matkul= readFileJson('matkul.json')
+        except:
+            print("File tidak ditemukan, Membuat File Json...")
+            updateDataMatkul()
+            matkul= readFileJson('matkul.json')
+
         nama_matkul = pilih_dari_list("Matkul", list(matkul.keys()))
         nama_pert = pilih_dari_list("Pertemuan", matkul[nama_matkul])
         tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest", "Kuesioner"])
@@ -285,28 +276,21 @@ def main():
 
         driver = set_driver()
         try:
+            driver.get(link)
+            WebDriverWait(driver, timeout=300).until(
+                lambda d: "Dashboard" in d.page_source
+            )
             if tipe== 'Kuesioner':
-                driver.get(link)
-                WebDriverWait(driver, timeout=300).until(
-                    lambda d: "Dashboard" in d.page_source
-                )
                 quisioner(driver, nama_matkul, nama_pert, ran=True)
             elif tipe == 'Posttest':
-                driver.get(link)
-                WebDriverWait(driver, timeout=300).until(
-                    lambda d: "Dashboard" in d.page_source
-                )
                 quiz(driver, nama_matkul, nama_pert, tipe)
+
                 driver.get(link)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
                 )
                 quisioner(driver, nama_matkul, nama_pert, ran=True)
             else:
-                driver.get(link)
-                WebDriverWait(driver, timeout=300).until(
-                    lambda d: "Dashboard" in d.page_source
-                )
                 quiz(driver, nama_matkul, nama_pert, tipe)
                 
         finally:
