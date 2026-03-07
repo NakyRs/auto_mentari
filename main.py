@@ -1,19 +1,23 @@
 import time
 import random
+import os
+import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
 # from selenium.webdriver.chrome.service import Service
 from git_model import generate
 from definitions import *
 
 link= "https://mentari.unpam.ac.id"
+user_data_path = os.environ['LOCALAPPDATA'] + r'\Google\Chrome\User Data\Profile 1' # Lokasi direktori profil pengguna, Sesuaikan
+random_quiz= False
+random_quisioner= True
 
 def set_driver(headless= False):
-    chrome_options = Options()
-    chrome_options.add_argument(r"user-data-dir=C:\Users\HP\AppData\Local\Google\Chrome\User Data\Profile 1")  # Lokasi direktori profil pengguna
+    chrome_options = uc.ChromeOptions()
+    chrome_options.add_argument(f"--user-data-dir={user_data_path}")
     if headless:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
@@ -21,7 +25,7 @@ def set_driver(headless= False):
         chrome_options.add_argument("--window-size=1920,1080")
     # driver = webdriver.Chrome(service=Service("path_to_chromedriver"), options=chrome_options)
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = uc.Chrome(options=chrome_options, version_main=145) #samakan dengan versi chrome
 
     return driver
 
@@ -38,7 +42,7 @@ def matkul_pert(driver):
     for i in range(len(courses)):
         if i == len(courses)-1: continue
         course= matkul_element()
-        namat= course[i].text
+        nama_matkul= course[i].text
 
         course[i].click()
         pertemuan_elements = WebDriverWait(driver, 30).until(
@@ -46,11 +50,10 @@ def matkul_pert(driver):
         )
         pertemuan_list = []
         for j, pertemuan in enumerate(pertemuan_elements):
-            # print(f"  Pertemuan {j}: {pertemuan.text}")
             if j == 0: continue
             pertemuan_list.append(pertemuan.text)
 
-        matkul[namat]= pertemuan_list
+        matkul[nama_matkul]= pertemuan_list
 
         driver.back()
         WebDriverWait(driver, 20).until(
@@ -60,8 +63,8 @@ def matkul_pert(driver):
     return matkul
 
 
-def quiz(driver, nama_matkul, pertemuan, tipe):
-    # nama_matkul= nama_matkul.upper() #Test Semester 4       ##ppp
+def quiz(driver, nama_matkul, pertemuan, tipe, rand= False):
+    # nama_matkul= nama_matkul.upper() #Test Semester 4
 
     wait = WebDriverWait(driver, 10)
     element = WebDriverWait(driver, 10).until(
@@ -105,26 +108,9 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
     except:
         pass
     # <div class="MuiAlert-message css-1xsto0d"><div class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom MuiAlertTitle-root css-pp3c2j"><p class="MuiTypography-root MuiTypography-body1 title css-ko3ua3">SUCCESS</p></div>Quiz berhasil dibuat</div>
-    i=0
-    while True:
-        i+=1
-        try:
-            if i==1:
-                try:
-                    WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "MuiSnackbar-root"))
-                    )
-                        # if (popup) popup.remove();
-                    driver.execute_script("""
-                        let popup = document.querySelector('.MuiSnackbar-root');
-                        if (popup && popup.innerText.includes('Quiz berhasil')) {
-                            popup.style.display = 'none';
-                        }
-                    """)
-                    print("Pop-up berhasil dihapus.")
-                except:
-                    print("Pop-up tidak ditemukan atau sudah hilang.")
 
+    while True:
+        try:
             pertanyaan_elem = wait.until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, ".ck-content p"))
             )
@@ -133,32 +119,33 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
             # pertanyaan_id = pertanyaan_container.get_attribute("id")
 
             pilihan_labels = driver.find_elements(By.CSS_SELECTOR, "label.MuiFormControlLabel-root")
-            opsi_list = []
+            
+            opsi_list= {}
+            opsi_text= {}
             for label in pilihan_labels:
                 try:
-                    huruf = label.find_element(By.CSS_SELECTOR, "p").text.strip()
+                    huruf = label.find_element(By.CSS_SELECTOR, "p").text.strip().replace('.', '').upper()
                     isi = label.find_element(By.CSS_SELECTOR, ".ck-content p").text.strip()
-                    opsi_list.append(f"{huruf} {isi}")
+                    # opsi_list.append(f"{huruf} {isi}")
+                    opsi_list[huruf]= label
+                    opsi_text[huruf]= isi
                 except:
                     continue
 
-            gabungan = pertanyaan + "\n" + "\n".join(opsi_list)
-            print(f"\n Soal:\n{gabungan}")
+            if not rand:
+                gabungan = pertanyaan + "\n" + "\n".join(f'{k} {v}' for k, v in opsi_text.items())
+                print(f"\n Soal:\n{gabungan}")
 
-            jawaban = generate(gabungan).strip().upper()
-            print(f"Jawaban AI: {jawaban}")
+                jawaban = generate(gabungan).strip().upper()
+                print(f"Jawaban AI: {jawaban}")
+            else:
+                jawaban= random.choice([k for k in opsi_list.keys()])
 
-            clicked = False
-            for label in pilihan_labels:
-                huruf = label.find_element(By.CSS_SELECTOR, "p").text.strip().replace('.', '').upper()
-                if huruf == jawaban:
-                    label.click()
-                    clicked = True
-                    print(f"Klik jawaban: {huruf}")
-                    break
-            if not clicked:
-                print("Jawaban tidak ditemukan di pilihan.")
-                break
+            if jawaban in opsi_list.keys():
+                opsi_list[jawaban].click()
+                print(f'Klik jawaban: {jawaban}')
+            else:
+                print('jawaban tidak ditemukan')
 
             try:
                 selesai_btn= driver.find_element(By.XPATH, "//button[contains(text(), 'Selesai')]")
@@ -180,7 +167,7 @@ def quiz(driver, nama_matkul, pertemuan, tipe):
             print("Terjadi error:", e)
             break
 
-def quisioner(driver, nama_matkul, pertemuan, ran=False):
+def quisioner(driver, nama_matkul, pertemuan, rand=False):
     wait = WebDriverWait(driver, 5)
     element = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, f'//div[@role="button" and .//p[text()="{nama_matkul}"]]'))
@@ -209,10 +196,9 @@ def quisioner(driver, nama_matkul, pertemuan, ran=False):
             print(f"Tidak ditemukan radio")
             continue
 
-        pilihan = random.choice(radio_buttons) if ran else radio_buttons[0]
-
-        # Klik langsung
+        pilihan = random.choice(radio_buttons) if rand else radio_buttons[0]
         pilihan.click()
+
     try:
         submit_button= wait.until(
             EC.visibility_of_element_located((By.XPATH, f"//button[contains(text(),'Submit Kuesioner')]"))
@@ -243,14 +229,15 @@ def updateDataMatkul(take_data= True):
 def main():
     print("=+=+=+=+=+= Auto_E-Learning =+=+=+=+=+=")
     while True:
-        inp= int(input("1.Update Data\n2.Start\ninput:"))
+        inp= int(input("1.Update Data\n2.Login\n3.Start\ninput:"))
         if inp == 1:
             updateDataMatkul()
             print("data berhasil diupdate")
-        elif inp == 2:
+        elif inp ==2:
+            login()
+        elif inp == 3:
             break
         else: "Pilihan Tidak ada"
-    # pilih_semester(driver) ##ppp
 
     while True:
         try:
@@ -280,29 +267,30 @@ def main():
             WebDriverWait(driver, timeout=300).until(
                 lambda d: "Dashboard" in d.page_source
             )
+            # pilih_semester(driver) ##Test only
             if tipe== 'Kuesioner':
-                quisioner(driver, nama_matkul, nama_pert, ran=True)
+                quisioner(driver, nama_matkul, nama_pert, rand= random_quisioner)
             elif tipe == 'Posttest':
-                quiz(driver, nama_matkul, nama_pert, tipe)
+                quiz(driver, nama_matkul, nama_pert, tipe, rand= random_quiz)
 
                 driver.get(link)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
                 )
-                quisioner(driver, nama_matkul, nama_pert, ran=True)
+                quisioner(driver, nama_matkul, nama_pert, rand= random_quisioner)
             else:
-                quiz(driver, nama_matkul, nama_pert, tipe)
+                quiz(driver, nama_matkul, nama_pert, tipe, rand= random_quiz)
                 
         finally:
             driver.quit()
 
+def login():
+    driver = set_driver()
+    driver.get(link)
+    print('Login berhasil disimpan')
 
-if __name__ == "__main__":
-    main()
 
-
-
-
+##Test only
 def pilih_semester(driver):
     from selenium.common.exceptions import StaleElementReferenceException
     from selenium.webdriver.common.keys import Keys
@@ -318,5 +306,8 @@ def pilih_semester(driver):
 
     input_element.send_keys(Keys.ARROW_DOWN)
     input_element.send_keys(Keys.ARROW_DOWN)
-    input_element.send_keys(Keys.ARROW_DOWN)
     input_element.send_keys(Keys.ENTER)
+
+
+if __name__ == "__main__":
+    main()
