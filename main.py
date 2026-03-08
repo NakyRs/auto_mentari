@@ -21,7 +21,6 @@ def set_driver(headless= False):
     if headless:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--window-size=1920,1080")
     # driver = webdriver.Chrome(service=Service("path_to_chromedriver"), options=chrome_options)
 
@@ -107,7 +106,6 @@ def quiz(driver, nama_matkul, pertemuan, tipe, rand= False):
         confirm_quiz_button.click()
     except:
         pass
-    # <div class="MuiAlert-message css-1xsto0d"><div class="MuiTypography-root MuiTypography-body1 MuiTypography-gutterBottom MuiAlertTitle-root css-pp3c2j"><p class="MuiTypography-root MuiTypography-body1 title css-ko3ua3">SUCCESS</p></div>Quiz berhasil dibuat</div>
 
     while True:
         try:
@@ -210,8 +208,6 @@ def quisioner(driver, nama_matkul, pertemuan, rand=False):
         return False
     # time.sleep(5)
 
-
-# name="row-radio-buttons-group"
 def updateDataMatkul(take_data= True):
     driver= set_driver(headless=True)
 
@@ -229,24 +225,27 @@ def updateDataMatkul(take_data= True):
 def main():
     print("=+=+=+=+=+= Auto_E-Learning =+=+=+=+=+=")
     while True:
-        inp= int(input("1.Update Data\n2.Login\n3.Start\ninput:"))
-        if inp == 1:
-            updateDataMatkul()
-            print("data berhasil diupdate")
-        elif inp ==2:
+        pilihan= int(input("1.Update Data\n2.Login\n3.Start\ninput:"))
+        if pilihan== 1:
+            try:
+                updateDataMatkul()
+                print("data berhasil diupdate")
+            except:
+                print('data gagal diupdate')
+        elif pilihan== 2:
             login()
-        elif inp == 3:
+        elif pilihan== 3:
             break
         else: "Pilihan Tidak ada"
 
-    while True:
-        try:
-            matkul= readFileJson('matkul.json')
-        except:
-            print("File tidak ditemukan, Membuat File Json...")
-            updateDataMatkul()
-            matkul= readFileJson('matkul.json')
+    try:
+        matkul= readFileJson('matkul.json')
+    except:
+        print("File tidak ditemukan, Membuat File Json...")
+        updateDataMatkul()
+        matkul= readFileJson('matkul.json')
 
+    while True:
         nama_matkul = pilih_dari_list("Matkul", list(matkul.keys()))
         nama_pert = pilih_dari_list("Pertemuan", matkul[nama_matkul])
         tipe = pilih_dari_list("Tipe", ["Pretest", "Posttest", "Kuesioner"])

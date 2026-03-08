@@ -15,13 +15,15 @@ def generate(prompt):
         messages=[
             {
                 "role": "system",
-                "content": "jawablah dengan pilihan gandanya saja atau hurufnya saja tanpa titik",
+                # "content": "jawablah dengan pilihan gandanya saja atau hurufnya saja tanpa titik",
+                "content": "Jawab hanya dengan satu huruf pilihan (A, B, C, D, atau E) tanpa teks tambahan.",
             },
             {
                 "role": "user",
                 "content": prompt,
             }
         ],
-        model=model
+        model=model,
+        temperature=0
     )
     return response.choices[0].message.content
