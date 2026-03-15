@@ -1,3 +1,5 @@
 selenium
 undetected_chromedriver
 openai
+pyqt6
+setuptools #for undetected_chromedriver

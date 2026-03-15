@@ -1,9 +1,6 @@
 import os
 from openai import OpenAI
 
-#cmd => set GITHUB_TOKEN= token
-# token = os.environ["GITHUB_TOKEN"]
-# token = "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"
 endpoint = "https://models.github.ai/inference"
 model = "openai/gpt-4.1-nano"
 
