@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt
 from .about_tab import AboutTab
 from .setting_dialog import Setting
 from app.definitions import readFileJson, writeFileJson
-from app.driver_executor import execute, login, updateDataMatkul
+from app.driver_executor import DriverExecutor
 
 class MainWindow(QMainWindow):
 
@@ -18,8 +18,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Auto E-Learning")
         self.setFixedSize(400,600)
 
-        # self.settings= readFileJson('settings.json')
         self.settings= self.load_settings()
+        self.driver= DriverExecutor(self.settings)
         
         layout = QVBoxLayout()
 
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         self.combo_pertemuan.addItems(self.matkul_data.get(matkul, []))
 
     def update_data(self):
-        updateDataMatkul()
+        self.driver.updateDataMatkul()
         self.log_print("Data berhasil diupdate")
         self.load_matkul()
 
@@ -102,12 +102,12 @@ class MainWindow(QMainWindow):
             
         except:
             self.log_print("File tidak ditemukan, membuat file...")
-            updateDataMatkul()
+            self.driver.updateDataMatkul()
             self.load_matkul()
 
 
     def login(self):
-        login()
+        self.driver.login()
         self.log_print("Login selesai")
 
     def start_process(self):
@@ -129,14 +129,21 @@ class MainWindow(QMainWindow):
             return
         
         self.log_print("Memulai Proses...")
-        execute(nama_matkul, nama_pert, tipe, random, key)
-        self.log_print("Proses selesai")
+        try:
+            self.driver.execute(nama_matkul, nama_pert, tipe, key)
+            self.log_print("Proses selesai")
+        except:
+            self.log_print("Proses Gagal")
 
     def setting_window(self):
         dialog= Setting(self, self.settings)
         if dialog.exec():
-            self.settings= dialog.get_settings()
+            new_settings= dialog.get_settings()
+
+            self.settings= new_settings
+            self.driver.update_settings(new_settings)
             writeFileJson(self.settings, 'settings.json')
+
             self.log_print('Setting Updated')
             print('Updated')
         else:    
