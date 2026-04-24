@@ -16,7 +16,7 @@ profil= 'Profile 1' # Lokasi direktori profil pengguna, Sesuaikan
 class DriverExecutor:
     def __init__(self, settings):
         self.settings= settings
-        self.user_data_path= self.get_chrome_user_data_path(profil)
+        self.user_data_path= get_chrome_user_data_path(profil)
 
     def update_settings(self, settings):
         self.settings= settings
@@ -29,34 +29,10 @@ class DriverExecutor:
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--window-size=1920,1080")
         # driver = webdriver.Chrome(service=Service("path_to_chromedriver"), options=chrome_options)
-
-        driver = uc.Chrome(options=chrome_options, version_main=145) #samakan dengan versi chrome
+        version= get_chrome_version()
+        driver = uc.Chrome(options=chrome_options, version_main=version)
 
         return driver
-    
-    def get_chrome_user_data_path(self, profile="Default"):
-        system = platform.system()
-
-        if system == "Windows":
-            base_path = os.path.join(
-                os.environ.get("LOCALAPPDATA", ""),
-                "Google", "Chrome", "User Data"
-            )
-
-        elif system == "Darwin":
-            base_path = os.path.expanduser(
-                "~/Library/Application Support/Google/Chrome"
-            )
-
-        elif system == "Linux":
-            base_path = os.path.expanduser(
-                "~/.config/google-chrome"
-            )
-
-        else:
-            raise Exception("OS tidak dikenali")
-        
-        return os.path.join(base_path, profile)
 
     def matkul_pert(self, driver):
         def matkul_element():
