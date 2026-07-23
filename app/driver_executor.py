@@ -17,6 +17,7 @@ class DriverExecutor:
     def __init__(self, settings):
         self.settings= settings
         self.user_data_path= get_chrome_user_data_path(profil)
+        self.driver= None
 
     def update_settings(self, settings):
         self.settings= settings
@@ -33,6 +34,21 @@ class DriverExecutor:
         driver = uc.Chrome(options=chrome_options, version_main=version)
 
         return driver
+
+    def get_driver(self):
+        if self.driver is None:
+            self.driver = self.set_driver()
+        else:
+            try:
+                _ = self.driver.current_url
+            except Exception:
+                self.driver = self.set_driver()
+
+        return self.driver
+    
+    def close(self):
+        if self.driver:
+            self.driver.quit()
 
     def matkul_pert(self, driver):
         def matkul_element():
@@ -214,27 +230,34 @@ class DriverExecutor:
         # time.sleep(5)
 
     def updateDataMatkul(self, take_data= True):
-        driver= self.set_driver(headless=True)
+        driver= None
+        try:
+            driver= self.set_driver(headless=True)
 
-        driver.get(link)
-        WebDriverWait(driver, timeout=300).until(
-            lambda d: "Dashboard" in d.page_source
-        )
+            driver.get(link)
+            WebDriverWait(driver, timeout=300).until(
+                lambda d: "Dashboard" in d.page_source
+            )
 
-        matkul= self.matkul_pert(driver)
+            matkul= self.matkul_pert(driver)
 
-        driver.quit()
-        writeFileJson(matkul, "matkul.json")
+            driver.quit()
+            writeFileJson(matkul, "matkul.json")
+        except Exception as e:
+            raise Exception(f"Gagal update data: {e}")
+        finally:
+            if driver:
+                driver.quit()
         # return matkul
 
     def execute(self, nama_matkul, nama_pert, tipe, key):
-        driver= self.set_driver()
+        driver= self.get_driver()
         try:
             driver.get(link)
             WebDriverWait(driver, timeout=300).until(
                 lambda d: "Dashboard" in d.page_source
             )
-            # pilih_semester(driver) ##Test only
+            # self.pilih_semester(driver) ##Test only
             if tipe== 'Kuesioner':
                 self.quisioner(driver, nama_matkul, nama_pert, self.settings.get(tipe, True))
             elif tipe == 'Posttest':
@@ -249,7 +272,11 @@ class DriverExecutor:
                 self.quiz(driver, nama_matkul, nama_pert, tipe, self.settings.get(tipe, True), key)
                 
         finally:
-                driver.quit()
+            pass
+            # try:
+            #     driver.minimize_window()
+            # except Exception:
+            #     pass
 
 
     def main(self):
@@ -290,7 +317,7 @@ class DriverExecutor:
                 print("=== Bye ===")
                 break
 
-            driver = self.set_driver()
+            driver = self.get_driver()
             try:
                 driver.get(link)
                 WebDriverWait(driver, timeout=300).until(
@@ -314,13 +341,13 @@ class DriverExecutor:
                 driver.quit()
 
     def login(self):
-        driver = self.set_driver()
+        driver = self.get_driver()
         driver.get(link)
         print('Login berhasil disimpan')
 
 
     ##Test only
-    def pilih_semester(driver):
+    def pilih_semester(self, driver):
         from selenium.common.exceptions import StaleElementReferenceException
         from selenium.webdriver.common.keys import Keys
 

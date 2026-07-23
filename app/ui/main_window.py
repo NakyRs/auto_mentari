@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
     QComboBox,QTextEdit, QTabWidget,
 )
 from PyQt6.QtCore import Qt
+from .worker import ExecuteWorker
 from .about_tab import AboutTab
 from .setting_dialog import Setting
 from app.definitions import readFileJson, writeFileJson
@@ -82,9 +83,15 @@ class MainWindow(QMainWindow):
         self.combo_pertemuan.addItems(self.matkul_data.get(matkul, []))
 
     def update_data(self):
-        self.driver.updateDataMatkul()
-        self.log_print("Data berhasil diupdate")
-        self.load_matkul()
+        try:
+            self.driver.updateDataMatkul()
+
+            self.log_print("Data berhasil diupdate")
+            self.load_matkul()
+
+        except Exception as e:
+            self.log_print("Update data gagal")
+            self.log_print(f"Error: {e}")
 
     def log_print(self, text):
         self.log.append(text)
@@ -104,7 +111,6 @@ class MainWindow(QMainWindow):
             self.log_print("File tidak ditemukan, membuat file...")
             self.driver.updateDataMatkul()
             self.load_matkul()
-
 
     def login(self):
         self.driver.login()
@@ -130,10 +136,17 @@ class MainWindow(QMainWindow):
         
         self.log_print("Memulai Proses...")
         try:
-            self.driver.execute(nama_matkul, nama_pert, tipe, key)
-            self.log_print("Proses selesai")
-        except:
+            self.worker = ExecuteWorker(self.driver, nama_matkul, nama_pert, tipe, key)
+
+            self.worker.finished.connect(self.finish_process)
+            self.worker.error.connect(self.error_process)
+            self.btn_update.setDisabled(True)
+            self.worker.start()
+
+            self.log_print("Proses dimulai...")
+        except Exception as e:
             self.log_print("Proses Gagal")
+            self.log_print(f"Error: {e}")
 
     def setting_window(self):
         dialog= Setting(self, self.settings)
@@ -159,6 +172,22 @@ class MainWindow(QMainWindow):
             settings = {}
             writeFileJson(settings, 'settings.json')
             return settings
+        
+    def finish_process(self):
+        self.log_print("Proses selesai")
+        self.btn_update.setDisabled(False)
+        self.showNormal()
+        self.activateWindow()
+        self.raise_()
+
+    def error_process(self, text):
+        self.log_print("Proses Gagal")
+        self.log_print(f"Error: {text}")
+        self.btn_update.setDisabled(False)
+
+    def closeEvent(self, event):
+        self.driver.close()
+        event.accept()
 
 
 if __name__ == "__main__":
@@ -168,3 +197,42 @@ if __name__ == "__main__":
     window.show()
 
     app.exec()
+
+
+# def start_process(self):
+
+#     nama_matkul = self.combo_matkul.currentText()
+
+#     nama_pert = self.combo_pertemuan.currentText()
+
+#     tipe = self.combo_tipe.currentText()
+
+#     key = self.settings.get("key", "")
+
+#     self.worker = ExecuteWorker(
+#         self.driver,
+#         nama_matkul,
+#         nama_pert,
+#         tipe,
+#         key
+#     )
+
+#     self.worker.finished.connect(self.finish_process)
+
+#     self.worker.error.connect(self.error_process)
+
+#     self.worker.start()
+
+#     self.log_print("Proses dimulai...")
+
+# def finish_process(self):
+
+#     self.log_print("Proses selesai")
+#     self.showNormal()
+#     self.activateWindow()
+#     self.raise_()
+
+# def error_process(self, text):
+
+#     self.log_print(text)
+
