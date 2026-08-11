@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from .worker import ExecuteWorker
 from .about_tab import AboutTab
+from .khs_tab import KHSTab
 from .setting_dialog import Setting
 from app.definitions import readFileJson, writeFileJson
 from app.driver_executor import DriverExecutor
@@ -21,6 +22,8 @@ class MainWindow(QMainWindow):
 
         self.settings= self.load_settings()
         self.driver= DriverExecutor(self.settings)
+        self.matkul= {}
+        self.is_process_running = False
         
         layout = QVBoxLayout()
 
@@ -57,14 +60,18 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.btn_start)
         layout.addWidget(self.log)
 
+        self.load_matkul()
+
         container_ele = QWidget()
         container_ele.setLayout(layout)
 
-        container_about= AboutTab()
+        self.container_about= AboutTab()
+        self.container_khs= KHSTab(settings= self.settings, driver= self.driver, main_window=self)
 
         tabs= QTabWidget()
         tabs.addTab(container_ele,'E-Learning')
-        tabs.addTab(container_about, 'About')
+        tabs.addTab(self.container_khs, 'KHS')
+        tabs.addTab(self.container_about, 'About')
         self.setCentralWidget(tabs)
 
         # CONNECT EVENT
@@ -73,8 +80,6 @@ class MainWindow(QMainWindow):
         self.btn_start.clicked.connect(self.start_process)
         self.btn_setting.clicked.connect(self.setting_window)
         self.combo_matkul.currentTextChanged.connect(self.update_pertemuan)
-
-        self.load_matkul()
         # load pertama
         # self.update_pertemuan(self.combo_matkul.currentText())
 
@@ -88,6 +93,7 @@ class MainWindow(QMainWindow):
 
             self.log_print("Data berhasil diupdate")
             self.load_matkul()
+            self.container_khs.load_matkul()
 
         except Exception as e:
             self.log_print("Update data gagal")
@@ -98,11 +104,11 @@ class MainWindow(QMainWindow):
 
     def load_matkul(self):
         try:
-            matkul = readFileJson("matkul.json")
-            self.matkul_data = matkul
+            self.matkul = readFileJson("matkul.json")
+            self.matkul_data = self.matkul
 
             self.combo_matkul.clear()
-            self.combo_matkul.addItems(matkul.keys())
+            self.combo_matkul.addItems(self.matkul.keys())
 
             if self.combo_matkul.count() > 0:
                 self.update_pertemuan(self.combo_matkul.currentText())
@@ -117,6 +123,8 @@ class MainWindow(QMainWindow):
         self.log_print("Login selesai")
 
     def start_process(self):
+        if self.is_process_running:
+            return
 
         nama_matkul = self.combo_matkul.currentText()
         nama_pert = self.combo_pertemuan.currentText()
@@ -135,18 +143,19 @@ class MainWindow(QMainWindow):
             return
         
         self.log_print("Memulai Proses...")
+        self.set_process_running(True)
         try:
             self.worker = ExecuteWorker(self.driver, nama_matkul, nama_pert, tipe, key)
-
+            
             self.worker.finished.connect(self.finish_process)
             self.worker.error.connect(self.error_process)
-            self.btn_update.setDisabled(True)
             self.worker.start()
 
             self.log_print("Proses dimulai...")
         except Exception as e:
             self.log_print("Proses Gagal")
             self.log_print(f"Error: {e}")
+            self.set_process_running(False)
 
     def setting_window(self):
         dialog= Setting(self, self.settings)
@@ -173,17 +182,31 @@ class MainWindow(QMainWindow):
             writeFileJson(settings, 'settings.json')
             return settings
         
-    def finish_process(self):
+    def finish_process(self, worker):
         self.log_print("Proses selesai")
-        self.btn_update.setDisabled(False)
-        self.showNormal()
-        self.activateWindow()
-        self.raise_()
+        self.bring_main_window_to_front()
+        self.set_process_running(False)
 
     def error_process(self, text):
         self.log_print("Proses Gagal")
         self.log_print(f"Error: {text}")
-        self.btn_update.setDisabled(False)
+        self.bring_main_window_to_front()
+        self.set_process_running(False)
+
+    def bring_main_window_to_front(self):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def set_process_running(self, running):
+        self.is_process_running = running
+
+        self.btn_update.setDisabled(running)
+        self.btn_login.setDisabled(running)
+        self.btn_start.setDisabled(running)
+        
+        self.container_khs.btn_login.setDisabled(running)
+        self.container_khs.btn_start.setDisabled(running)
 
     def closeEvent(self, event):
         self.driver.close()

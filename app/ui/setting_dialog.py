@@ -18,6 +18,9 @@ class Setting(QDialog):
         self.input_api_key = QLineEdit()
         self.input_api_key.setText(self.settings.get('key',''))
         form.addRow("Api-Key:", self.input_api_key)
+        self.input_semester = QLineEdit()
+        self.input_semester.setText(self.settings.get('semester',''))
+        form.addRow("Semester:", self.input_semester)
 
         # self.combo_theme = QComboBox()
         # self.combo_theme.addItems(["Light", "Dark"])
@@ -61,4 +64,5 @@ class Setting(QDialog):
             "Pretest": self.check_rand_pre.isChecked(),
             "Posttest": self.check_rand_post.isChecked(),
             "Kuesioner": self.kuisioner_option.currentText()=='Random',
+            "semester": self.input_semester.text()
         }

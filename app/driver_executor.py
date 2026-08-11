@@ -6,11 +6,13 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common import StaleElementReferenceException
 # from selenium.webdriver.chrome.service import Service
 from app.git_model import generate
 from app.definitions import *
 
-link= "https://mentari.unpam.ac.id"
+link_ele= "https://mentari.unpam.ac.id"
+link_myunpam= "https://my.unpam.ac.id"
 profil= 'Profile 1' # Lokasi direktori profil pengguna, Sesuaikan
 
 class DriverExecutor:
@@ -18,6 +20,8 @@ class DriverExecutor:
         self.settings= settings
         self.user_data_path= get_chrome_user_data_path(profil)
         self.driver= None
+        self.ele_handle = None
+        self.khs_handle = None
 
     def update_settings(self, settings):
         self.settings= settings
@@ -43,6 +47,8 @@ class DriverExecutor:
                 _ = self.driver.current_url
             except Exception:
                 self.driver = self.set_driver()
+                self.ele_handle = None
+                self.khs_handle = None
 
         return self.driver
     
@@ -229,12 +235,83 @@ class DriverExecutor:
             return False
         # time.sleep(5)
 
+    def khs(self, driver, nama_matkul, pilihan, semester):
+        wait = WebDriverWait(driver, 10)
+        try:
+            wait.until(
+                EC.invisibility_of_element_located(
+                    (By.CSS_SELECTOR, "div.q-loading")
+                )
+            )
+
+            semester_choice = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "input[aria-label='Pilih Semester']")
+                )
+            )
+            semester_choice.click()
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    f"//div[@role='option'][.//div[normalize-space()='{semester}']]"
+                ))
+            ).click()
+            kuesioner_btn = WebDriverWait(driver,10).until(
+                EC.element_to_be_clickable((
+                    By.XPATH,
+                    f"//tr[.//span[contains(., '{nama_matkul}')]]//button[contains(., 'Isi Kuesioner')]"
+                ))
+            )
+            kuesioner_btn.click()
+            while True:
+                groups = wait.until(
+                    EC.presence_of_all_elements_located(
+                        (By.XPATH, "//div[@role='radiogroup']")
+                    )
+                )
+
+                for i in range(len(groups)):
+                    try:
+                        group = groups[i]
+
+                        radios = group.find_elements(By.XPATH, ".//div[@role='radio']")
+
+                        if len(radios) > pilihan:
+                            radio = radios[pilihan]
+
+                            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", radio)
+
+                            driver.execute_script("arguments[0].click();", radio)
+
+                    except StaleElementReferenceException:
+                        # ulang halaman ini dari awal
+                        break
+
+                tombol = wait.until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//button[.//span[contains(normalize-space(),'SELANJUTNYA') or contains(normalize-space(),'SIMPAN')]]")
+                    )
+                )
+
+                teks = tombol.text.strip()
+                # klik tombol
+                driver.execute_script("arguments[0].click();", tombol)
+
+                if "SIMPAN" in teks:
+                    break
+
+                # TUNGGU TRANSISI
+                time.sleep(1)
+        except Exception as e:
+            print("error Func khs: ", nama_matkul)
+            raise
+
     def updateDataMatkul(self, take_data= True):
         driver= None
         try:
             driver= self.set_driver(headless=True)
 
-            driver.get(link)
+            driver.get(link_ele)
             WebDriverWait(driver, timeout=300).until(
                 lambda d: "Dashboard" in d.page_source
             )
@@ -253,7 +330,16 @@ class DriverExecutor:
     def execute(self, nama_matkul, nama_pert, tipe, key):
         driver= self.get_driver()
         try:
-            driver.get(link)
+            if self.ele_handle in driver.window_handles:
+                # Tab sudah ada → pindah ke tab tersebut
+                driver.switch_to.window(self.ele_handle)
+
+            else:
+                # Tab belum ada → buat tab baru
+                driver.switch_to.new_window("tab")
+                self.ele_handle = driver.current_window_handle
+            
+            driver.get(link_ele)
             WebDriverWait(driver, timeout=300).until(
                 lambda d: "Dashboard" in d.page_source
             )
@@ -263,7 +349,7 @@ class DriverExecutor:
             elif tipe == 'Posttest':
                 self.quiz(driver, nama_matkul, nama_pert, tipe, self.settings.get(tipe, True), key)
 
-                driver.get(link)
+                driver.get(link_ele)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
                 )
@@ -278,6 +364,60 @@ class DriverExecutor:
             # except Exception:
             #     pass
 
+    def execute_khs(self, nama_matkul, pilihan=2 ):
+        driver= self.get_driver()
+        errors = []
+        try:
+            if self.khs_handle in driver.window_handles:
+                # Tab sudah ada → pindah ke tab tersebut
+                driver.switch_to.window(self.khs_handle)
+
+            else:
+                # Tab belum ada → buat tab baru
+                driver.switch_to.new_window("tab")
+                self.khs_handle = driver.current_window_handle
+
+            driver.get(link_myunpam)
+            # time.sleep(1200)
+
+            try:
+                close_btn = WebDriverWait(driver,2).until(
+                    EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'q-dialog')]//button"))
+                )
+                # close_btn.click()
+                driver.execute_script("arguments[0].click();", close_btn)
+            except: pass
+            
+            time.sleep(2)
+            akademik = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//div[@role='button' and .//div[contains(text(),'AKADEMIK')]]"))
+            )
+
+            akademik.click()
+
+            KHS = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//div[contains(text(),'KHS')]"))
+            )
+            KHS.click()
+
+            for matkul in nama_matkul:
+                try:
+                    hasil_pilihan= random.randint(0, 3) if pilihan == "random" else pilihan
+                    self.khs(driver, matkul, hasil_pilihan, self.settings.get("semester", None))
+                except Exception as e:
+                    errors.append({
+                        "matkul": matkul,
+                        "error": str(e)
+                    })
+                    print(f"error loop exec {matkul}: {e}")
+        except Exception as e:
+            errors.append({
+                "matkul": nama_matkul,
+                "error": str(e)
+            })
+            print("error exec: ",e)
+        
+        return errors
 
     def main(self):
         print("=+=+=+=+=+= Auto_E-Learning =+=+=+=+=+=")
@@ -319,7 +459,7 @@ class DriverExecutor:
 
             driver = self.get_driver()
             try:
-                driver.get(link)
+                driver.get(link_ele)
                 WebDriverWait(driver, timeout=300).until(
                     lambda d: "Dashboard" in d.page_source
                 )
@@ -329,7 +469,7 @@ class DriverExecutor:
                 elif tipe == 'Posttest':
                     self.quiz(driver, nama_matkul, nama_pert, tipe, self.settings.get('Posttest', True))
 
-                    driver.get(link)
+                    driver.get(link_ele)
                     WebDriverWait(driver, timeout=300).until(
                         lambda d: "Dashboard" in d.page_source
                     )
@@ -340,9 +480,9 @@ class DriverExecutor:
             finally:
                 driver.quit()
 
-    def login(self):
+    def login(self, opt= None):
         driver = self.get_driver()
-        driver.get(link)
+        driver.get(link_ele)
         print('Login berhasil disimpan')
 
 
