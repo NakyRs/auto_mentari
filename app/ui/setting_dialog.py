@@ -17,7 +17,7 @@ class Setting(QDialog):
 
         self.input_api_key = QLineEdit()
         self.input_api_key.setText(self.settings.get('key',''))
-        form.addRow("Api-Key:", self.input_api_key)
+        form.addRow("Api-Key (Opsional):", self.input_api_key)
         self.input_semester = QLineEdit()
         self.input_semester.setText(self.settings.get('semester',''))
         form.addRow("Semester:", self.input_semester)

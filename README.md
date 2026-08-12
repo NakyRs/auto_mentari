@@ -14,15 +14,21 @@ pip install -r requirements.txt
 ```
 
 ## Usage
+```bash
+python main.py
+```
+![Image](https://github.com/user-attachments/assets/10d9e7a2-5317-4834-91dd-e01c42bd5aa6)
+![Image](https://github.com/user-attachments/assets/35437cf1-54da-4cf6-a674-17c33d7b164f)
+
 set token di setting
 ```python
 Api-key = "YOUR_GITHUB_TOKEN" # <--Model Token
 ```
-```bash
-python main.py
-```
-![Image](https://github.com/user-attachments/assets/a3ebd746-9c9c-4803-8800-6a7018b4767c)
+gunakan random option dengan cara cheklist opsi random test jika tidak ingin menggunakan menggunakan fitur ai untuk elearning
+
+![Image](https://github.com/user-attachments/assets/746b98fe-7623-4a5f-823f-7fef0141f23d)
 
 1. login (Manual)
 2. Update Data (Menyimpan data matkul)
-3. Start
+3. Setting
+4. Start

@@ -272,12 +272,13 @@ class DriverExecutor:
 
                 for i in range(len(groups)):
                     try:
+                        hasil_pilihan= random.randint(0, 3) if pilihan == "random" else pilihan-1
                         group = groups[i]
 
                         radios = group.find_elements(By.XPATH, ".//div[@role='radio']")
 
-                        if len(radios) > pilihan:
-                            radio = radios[pilihan]
+                        if len(radios) > hasil_pilihan:
+                            radio = radios[hasil_pilihan]
 
                             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", radio)
 
@@ -331,11 +332,8 @@ class DriverExecutor:
         driver= self.get_driver()
         try:
             if self.ele_handle in driver.window_handles:
-                # Tab sudah ada → pindah ke tab tersebut
                 driver.switch_to.window(self.ele_handle)
-
             else:
-                # Tab belum ada → buat tab baru
                 driver.switch_to.new_window("tab")
                 self.ele_handle = driver.current_window_handle
             
@@ -369,11 +367,8 @@ class DriverExecutor:
         errors = []
         try:
             if self.khs_handle in driver.window_handles:
-                # Tab sudah ada → pindah ke tab tersebut
                 driver.switch_to.window(self.khs_handle)
-
             else:
-                # Tab belum ada → buat tab baru
                 driver.switch_to.new_window("tab")
                 self.khs_handle = driver.current_window_handle
 
@@ -402,8 +397,7 @@ class DriverExecutor:
 
             for matkul in nama_matkul:
                 try:
-                    hasil_pilihan= random.randint(0, 3) if pilihan == "random" else pilihan
-                    self.khs(driver, matkul, hasil_pilihan, self.settings.get("semester", None))
+                    self.khs(driver, matkul, pilihan, self.settings.get("semester", None))
                 except Exception as e:
                     errors.append({
                         "matkul": matkul,
@@ -480,9 +474,12 @@ class DriverExecutor:
             finally:
                 driver.quit()
 
-    def login(self, opt= None):
+    def login(self, link= None):
         driver = self.get_driver()
-        driver.get(link_ele)
+        if link == 'khs':
+            driver.get(link_myunpam)
+        else:
+            driver.get(link_ele)
         print('Login berhasil disimpan')
 
 

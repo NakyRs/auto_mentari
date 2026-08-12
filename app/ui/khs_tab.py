@@ -49,7 +49,7 @@ class KHSTab(QWidget):
         self.load_matkul()
 
     def login(self):
-        self.driver.login()
+        self.driver.login(link="khs")
         self.log_print("Login selesai")
 
     def log_print(self, text):
