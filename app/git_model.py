@@ -1,15 +1,15 @@
 import os
 from openai import OpenAI
 
-endpoint = "https://models.github.ai/inference"
-model = "openai/gpt-4.1-nano"
+endpoint= "https://generativelanguage.googleapis.com/v1beta/openai/"
+model= "gemini-3.5-flash-lite"
 
 clients = {}
 
 def get_client(token):
     if token not in clients:
         clients[token] = OpenAI(
-            base_url="https://models.github.ai/inference",
+            base_url=endpoint,
             api_key=token
         )
     return clients[token]

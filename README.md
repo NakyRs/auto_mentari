@@ -1,6 +1,6 @@
 # Auto_Mentari
 
-Otomatiasi E-learning mentari unpam menggunakan selenium dengan AI dari [github model](https://github.com/marketplace/models)
+Otomatiasi E-learning mentari unpam menggunakan selenium dengan AI dari [google ai studio](https://aistudio.google.com/)
 ## Installation
 Clone atau download [Repo](https://github.com/NakyRs/auto_mentari) ini
 ```bash
@@ -22,7 +22,7 @@ python main.py
 
 set token di setting
 ```python
-Api-key = "YOUR_GITHUB_TOKEN" # <--Model Token
+Api-key = "API_KEY" # <--Model Token
 ```
 gunakan random option dengan cara cheklist opsi random test jika tidak ingin menggunakan menggunakan fitur ai untuk elearning
 

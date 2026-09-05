@@ -33,7 +33,6 @@ class DriverExecutor:
             chrome_options.add_argument("--headless")
             chrome_options.add_argument("--disable-gpu")
             chrome_options.add_argument("--window-size=1920,1080")
-        # driver = webdriver.Chrome(service=Service("path_to_chromedriver"), options=chrome_options)
         version= get_chrome_version()
         driver = uc.Chrome(options=chrome_options, version_main=version)
 
@@ -53,8 +52,16 @@ class DriverExecutor:
         return self.driver
     
     def close(self):
-        if self.driver:
-            self.driver.quit()
+        driver = self.driver
+        self.driver = None
+        self.ele_handle = None
+        self.khs_handle = None
+
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
     def matkul_pert(self, driver):
         def matkul_element():
@@ -308,9 +315,8 @@ class DriverExecutor:
             raise
 
     def updateDataMatkul(self, take_data= True):
-        driver= None
         try:
-            driver= self.set_driver(headless=True)
+            driver= self.get_driver()
 
             driver.get(link_ele)
             WebDriverWait(driver, timeout=300).until(
@@ -318,15 +324,10 @@ class DriverExecutor:
             )
 
             matkul= self.matkul_pert(driver)
-
             driver.quit()
             writeFileJson(matkul, "matkul.json")
         except Exception as e:
             raise Exception(f"Gagal update data: {e}")
-        finally:
-            if driver:
-                driver.quit()
-        # return matkul
 
     def execute(self, nama_matkul, nama_pert, tipe, key):
         driver= self.get_driver()
@@ -354,13 +355,8 @@ class DriverExecutor:
                 self.quisioner(driver, nama_matkul, nama_pert, self.settings.get('Kuesioner', True))
             else:
                 self.quiz(driver, nama_matkul, nama_pert, tipe, self.settings.get(tipe, True), key)
-                
-        finally:
-            pass
-            # try:
-            #     driver.minimize_window()
-            # except Exception:
-            #     pass
+        except Exception as e:
+            print(f"error exec: {e}")
 
     def execute_khs(self, nama_matkul, pilihan=2 ):
         driver= self.get_driver()
@@ -379,7 +375,6 @@ class DriverExecutor:
                 close_btn = WebDriverWait(driver,2).until(
                     EC.element_to_be_clickable((By.XPATH, "//div[contains(@class,'q-dialog')]//button"))
                 )
-                # close_btn.click()
                 driver.execute_script("arguments[0].click();", close_btn)
             except: pass
             
